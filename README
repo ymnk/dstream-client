@@ -1,0 +1,8 @@
+This is a client software to stream the Desktop image to 
+  http://lift.jcraft.com/dstream/
+
+How TO
+======
+* At first, Sign up at http://lift.jcraft.com/dstream/ and then 
+  register your own channel.
+* $ mvn scala:run
