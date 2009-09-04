@@ -47,6 +47,4 @@ class ImageProducerRobot(override val uri:String,
   catch{ 
     case e => Nil
   }
-  
-  def stop(){}
 }

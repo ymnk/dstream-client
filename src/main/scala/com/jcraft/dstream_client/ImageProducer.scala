@@ -36,7 +36,9 @@ trait ImageProducer{ self:Uploader =>
     self.post(update(imgh))
   }
   def update[A](imgh: Image => A):Seq[Param]
-  def stop():Unit
+  def stop(){
+    self.post(List(FieldParam("offair", "offair")))
+  }
 
   def toByteArray(image:BufferedImage)={
     new ByteArrayOutputStream match { case b =>

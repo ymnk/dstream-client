@@ -38,6 +38,8 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
                        host:String, port:Int, password:Option[String]) 
   extends ImageProducer with Uploader { self =>
 
+  var lastUpdate:Long = _
+
   var running:Boolean = true
 
   private val blockWidth=256
@@ -82,6 +84,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
     }
   }
 
+  lastUpdate = System.currentTimeMillis
   var vnc:RFBProtocolMainImage = _
   spawn{
     while(running){
@@ -101,7 +104,8 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
 
       imgh(image)
 
-      if(cursorMoved){
+      if(cursorMoved || 
+         (System.currentTimeMillis - lastUpdate > 30*1000)){ // touch remote update 
         params ::= FieldParam("move_cursor", cursorX+","+cursorY)
         cursorMoved = false
       }
@@ -148,6 +152,10 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
           }              
         case _ =>
       }
+
+      if(params.size>0){
+        lastUpdate = System.currentTimeMillis
+      }
       params
     }
     catch{ case e => Nil} 
@@ -176,7 +184,8 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
     }
   }
 
-  def stop(){
+  override def stop(){
+    super.stop()
     running = false
     try{vnc.close }catch{ case e=> }
   }
