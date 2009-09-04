@@ -38,7 +38,9 @@ case class DataParam(key:String, filename:String,
                      data:Array[Byte], typ:Option[String]) extends Param
 case class FileParam(key:String, file:File, typ:Option[String]) extends Param
 
-object PostMultiPartFormData {
+class PostMultiPartFormData {
+
+  var cookie:Option[String] = None
 
   private lazy val boundary:Array[Byte] = {
     val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -60,6 +62,10 @@ object PostMultiPartFormData {
       con.setDoOutput(true)
       con.setRequestProperty("Content-Type",
                              "multipart/form-data; boundary=%s".format(new String(boundary)))
+
+      cookie.map{c =>
+        con.setRequestProperty("Cookie", c)
+      }
 
       implicit val baos = new ByteArrayOutputStream
 
@@ -85,6 +91,12 @@ object PostMultiPartFormData {
         case cout =>
           baos.writeTo(cout)
           cout.close
+      }
+
+      con.getHeaderField("Set-Cookie") match{
+        case null =>
+        case c => 
+          cookie = Some(c.split(";").filter(!_.startsWith("Path=")).mkString("; "))
       }
 
       con.getResponseCode match{

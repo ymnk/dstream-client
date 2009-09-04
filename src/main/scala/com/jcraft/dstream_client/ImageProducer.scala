@@ -52,8 +52,9 @@ trait ImageProducer{ self:Uploader =>
 
 trait Uploader{
   val uri:String
+  val pmpfd = new PostMultiPartFormData
   def post(param:Seq[Param]){
     if(!param.isEmpty)
-      PostMultiPartFormData(uri, param:_*)
+      pmpfd(uri, param:_*)
   }
 }
