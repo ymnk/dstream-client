@@ -192,7 +192,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
 
   class Dirty{
     var pool=Set.empty[Rectangle]
-    def add(x:Int, y:Int, w:Int, h:Int):Unit=synchronized{
+    def add(x:Int, y:Int, w:Int, h:Int):Unit = synchronized{
       var r=new Rectangle(x, y, w, h)
       val rr=for(p<-pool if p.intersects(r)) yield p
       if(rr.isEmpty){
@@ -204,15 +204,11 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
       }
     }
 
-    def find[T](arr:Seq[(T, Rectangle)]):Set[T]=synchronized{
+    def find[T](arr:Seq[(T, Rectangle)]):Set[T] = synchronized{
       try{
-        arr.foldLeft(Set.empty[T]){(s, tr) => tr match{
-          case (t, r) if(!pool.filter((rr)=>r.intersects(rr)).isEmpty) => {
-            pool -= r
-            s + t
-          }
-          case _ => s
-        }
+        arr.foldLeft(Set.empty[T]){
+          case (s, (t, r)) if(pool.exists(r.intersects(_))) => s + t
+          case (s, _) => s
         }
       }
       finally{
