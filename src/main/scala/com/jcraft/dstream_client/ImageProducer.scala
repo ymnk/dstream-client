@@ -28,9 +28,10 @@ modification, are permitted provided that the following conditions are met:
 package com.jcraft.dstream_client
 
 import _root_.java.io.ByteArrayOutputStream
-import _root_.java.awt.Image
+import _root_.java.awt.{Image, Rectangle}
 import _root_.java.awt.image.BufferedImage
 import _root_.javax.imageio._
+import _root_.scala.collection.mutable.{Map,Set}
 
 object ImageProducer{
   val imageFormats = Array("jpg", "png")
@@ -44,6 +45,19 @@ object ImageProducer{
 
 trait ImageProducer{ self:Uploader =>
   import ImageProducer._
+
+  protected var imageWidth:Int = _
+  protected var imageHeight:Int = _
+  protected var blockWidth = 256
+  protected var blockHeight = 256
+
+  protected val dirty = new Dirty
+
+  private lazy val grid = {
+    for{(y,j)<-(0 until imageHeight by blockHeight).toList.zipWithIndex
+        (x,i) <- (0 until imageWidth by blockWidth).toList.zipWithIndex}
+      yield ((i -> j) -> new Rectangle(x, y, blockWidth, blockHeight))
+  }
 
   private var _imageFormat = "jpg"
 
@@ -62,10 +76,10 @@ trait ImageProducer{ self:Uploader =>
   def update[A](imgh: Image => A):Seq[Param]
 
   def stop(){
-    self.post(List(FieldParam("offair", "offair")))
+    self.post(List(FieldParam("off-air", "off-air")))
   }
 
-  def toByteArray(image:BufferedImage) = {
+  protected def toByteArray(image:BufferedImage) = {
     new ByteArrayOutputStream match { case b =>
       val writer = iWriter(imageFormat)
       writer.synchronized{
@@ -76,6 +90,70 @@ trait ImageProducer{ self:Uploader =>
       b.close
       b.toByteArray
     }
+  }
+
+  class Dirty{
+    private var pool = Set.empty[Rectangle]
+    def add(x:Int, y:Int, w:Int, h:Int):Unit = synchronized{
+      var r=new Rectangle(x, y, w, h)
+      val rr=for(p<-pool if p.intersects(r)) yield p
+      if(rr.isEmpty){
+        pool += r
+      }
+      else{
+        pool --= rr
+        pool += rr.foldLeft(r){(b, r)=>b.union(r)} 
+      }
+    }
+
+    def find[T](arr:Seq[(T, Rectangle)]):List[T] = synchronized{
+      try{
+        arr.foldLeft(Set.empty[T]){
+          case (s, (t, r)) if(pool.exists(r.intersects(_))) => s + t
+          case (s, _) => s
+        }.toList
+      }
+      finally{
+        pool.clear
+      }
+    }
+  }
+
+  private val comparePair:((Int,Int),(Int,Int))=>Boolean =
+    (i,j) => (i._1<j._1)||((i._1==j._1)&&(i._2<=j._2))
+
+  protected def dataParam(image:Image):List[Param] = {
+    var params:List[Param] = Nil
+    dirty.find(grid).sort(comparePair) match{
+      case area if area.size > 0 =>
+        val _image = new BufferedImage(area.size*blockWidth, blockHeight, 
+                                       BufferedImage.TYPE_3BYTE_BGR)
+        val _graphics = _image.getGraphics
+        try{
+          val updates = {
+            for(((_x, _y), index) <- area.zipWithIndex)
+              yield {
+                val x = -(_x*blockWidth) + index*blockWidth
+                val y = -(_y*blockHeight)
+                _graphics.setClip(index*blockWidth, 0, blockWidth, blockHeight)
+                _graphics.drawImage(image, x, y, null)
+                "%d,%d,%d,%d".format(_x*blockWidth, _y*blockHeight,
+                                     blockWidth, blockHeight)
+              }
+          }
+          params ::= FieldParam("image-format", imageFormat)
+          params ::= FieldParam("update", updates.mkString("&"))
+          val data = toByteArray(_image)
+          params ::= DataParam("data", "data",  data, None)
+        }
+        finally{
+          _graphics.dispose
+          _image.flush
+	}
+      case _ =>
+    }
+
+    params
   }
 } 
 

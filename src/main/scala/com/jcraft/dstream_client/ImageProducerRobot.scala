@@ -29,22 +29,31 @@ package com.jcraft.dstream_client
 
 import java.awt.{Robot, Rectangle, Image}
 
-class ImageProducerRobot(override val uri:String, 
-                         w:Int, h:Int) 
+class ImageProducerRobot(override val uri:String, w:Int, h:Int) 
   extends ImageProducer with Uploader {
+  
+  imageWidth = w
+  imageHeight = h
 
-  val robot = new Robot 
+  private val robot = new Robot 
 
-  def update[A](imgh: Image => A):Seq[Param]= try { 
+  def update[A](imgh: Image => A):Seq[Param] = {
     val img = robot.createScreenCapture(new Rectangle(0, 0, w, h))
-    imgh(img)
-    val data = toByteArray(img)
-    img.flush
-
-    List(FieldParam("update", "0,0,%d,%d".format(w, h)),
-         DataParam("data", "data",  data, None))
+    try{ 
+      imgh(img)
+      dirty.add(0, 0, w, h)
+      dataParam(img)
+    }
+    finally{
+      img.flush
+    }
   }
-  catch{ 
-    case e => Nil
+
+  override def dataParam(image:Image) = {
+    val param = super.dataParam(image)
+    if(param.isEmpty)
+      param
+    else
+      FieldParam("full-update", "full-update")::param
   }
 }

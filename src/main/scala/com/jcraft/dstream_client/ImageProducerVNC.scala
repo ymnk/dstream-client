@@ -28,8 +28,7 @@ modification, are permitted provided that the following conditions are met:
 package com.jcraft.dstream_client
 
 import _root_.scala.concurrent.ops.spawn
-import _root_.scala.collection.mutable.{Map,Set}
-import _root_.java.awt.{Graphics, Rectangle, Image}
+import _root_.java.awt.Image
 import _root_.java.awt.image.BufferedImage
 
 import _root_.com.jcraft.rfb._
@@ -38,35 +37,19 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
                        host:String, port:Int, password:Option[String]) 
   extends ImageProducer with Uploader { self =>
 
+  private var image:BufferedImage = _
+
   var lastUpdate:Long = _
 
   var running:Boolean = true
-
-  private val blockWidth=256
-  private val blockHeight=256
-
-  val imgType = "jpg" 
-
-  private var image:BufferedImage = _
-  private var imageWidth:Int = _
-  private var imageHeight:Int = _
 
   private var cursorX = -1
   private var cursorY = -1
   private var cursorMoved = false 
   private var offAir = false 
 
-  private val dirty=new Dirty
-
-  lazy val grid = {
-    for{(y,j)<-(0 until imageHeight by blockHeight).toList.zipWithIndex
-        (x,i) <- (0 until imageWidth by blockWidth).toList.zipWithIndex}
-      yield ((i -> j) -> new Rectangle(x, y, blockWidth, blockHeight))
-  }
-
   val iUpdater = new ImageUpdater{
-    def setImage(image:java.awt.Image){
-      //ImageProducerVNC.this.setImage(image)
+    def setImage(image:Image){
       self.setImage(image)
     }
     def update(x:Int, y:Int, width:Int, height:Int){
@@ -95,10 +78,6 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
     }
   }
 
-  val comparePair:((Int,Int),(Int,Int))=>Boolean =
-    (i,j) => (i._1<=j._1)&&(i._2<=j._2)
-
-  import java.io._
   def update[A](imgh: Image => A):Seq[Param]={ 
     try { 
       var params:List[Param] = Nil
@@ -109,56 +88,21 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
 
       if(cursorMoved || 
          (System.currentTimeMillis - lastUpdate > 30*1000)){ // touch remote update 
-        params ::= FieldParam("move_cursor", cursorX+","+cursorY)
+        params ::= FieldParam("move-cursor", cursorX+","+cursorY)
         cursorMoved = false
       }
 
       if(offAir){
-        params ::= FieldParam("offair", "offair")
-        offAir = true
+        params ::= FieldParam("off-air", "off-air")
+        offAir = false
       } 
 
-      dirty.find(grid).sort(comparePair) match{
-        case area if area.size > 0 =>
-          if(area.size == 12){
-            params ::= FieldParam("update", 
-                                  "0,0,%d,%d".format(imageWidth, imageHeight))
-            val data = toByteArray(image)
-            params ::= DataParam("data", "data",  data, None)
-          }
-          else{
-            val _image = new BufferedImage(area.size*blockWidth, 
-                                           blockHeight, 
-                                           BufferedImage.TYPE_3BYTE_BGR)
-            val _graphics = _image.getGraphics
-
-            import java.awt.Color
-            _graphics.setColor(Color.white)
-            _graphics.fillRect(0, 0, imageWidth, imageHeight)
-            val updates = {
-              for(((_x, _y), index) <- area.zipWithIndex)
-                yield {
-                  val x = -(_x*blockWidth) + index*blockWidth
-                  val y = -(_y*blockHeight)
-                  _graphics.setClip(index*blockWidth, 0, 
-                                    blockWidth, blockHeight)
-                  _graphics.drawImage(image, x, y, null)
-                  "%d,%d,%d,%d".format(_x*blockWidth, _y*blockHeight,
-                                       blockWidth, blockHeight)
-              }
-            }
-            params ::= FieldParam("update", updates.mkString("&"))
-            val data = toByteArray(_image)
-            params ::= DataParam("data", "data",  data, None)
-            _graphics.dispose
-            _image.flush
-          }              
-        case _ =>
-      }
+      params :::= dataParam(image) 
 
       if(params.size>0){
         lastUpdate = System.currentTimeMillis
       }
+
       params
     }
     catch{ case e => Nil} 
@@ -169,7 +113,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
     image=null
   }
 
-  def setImage(_image:java.awt.Image){
+  def setImage(_image:Image){
     image=_image.asInstanceOf[java.awt.image.BufferedImage]
     imageWidth=image.getWidth
     imageHeight=image.getHeight
@@ -191,32 +135,5 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
     super.stop()
     running = false
     try{vnc.close }catch{ case e=> }
-  }
-
-  class Dirty{
-    var pool=Set.empty[Rectangle]
-    def add(x:Int, y:Int, w:Int, h:Int):Unit = synchronized{
-      var r=new Rectangle(x, y, w, h)
-      val rr=for(p<-pool if p.intersects(r)) yield p
-      if(rr.isEmpty){
-        pool += r
-      }
-      else{
-        pool --= rr
-        pool += rr.foldLeft(r){(b, r)=>b.union(r)} 
-      }
-    }
-
-    def find[T](arr:Seq[(T, Rectangle)]):List[T] = synchronized{
-      try{
-        arr.foldLeft(Set.empty[T]){
-          case (s, (t, r)) if(pool.exists(r.intersects(_))) => s + t
-          case (s, _) => s
-        }.toList
-      }
-      finally{
-        pool.clear
-      }
-    }
   }
 }
