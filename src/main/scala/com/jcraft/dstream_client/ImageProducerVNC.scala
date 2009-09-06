@@ -95,6 +95,9 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
     }
   }
 
+  val comparePair:((Int,Int),(Int,Int))=>Boolean =
+    (i,j) => (i._1<=j._1)&&(i._2<=j._2)
+
   import java.io._
   def update[A](imgh: Image => A):Seq[Param]={ 
     try { 
@@ -115,7 +118,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
         offAir = true
       } 
 
-      dirty.find(grid) match{
+      dirty.find(grid).sort(comparePair) match{
         case area if area.size > 0 =>
           if(area.size == 12){
             params ::= FieldParam("update", 
@@ -133,7 +136,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
             _graphics.setColor(Color.white)
             _graphics.fillRect(0, 0, imageWidth, imageHeight)
             val updates = {
-              for(((_x, _y), index) <- area.toList.zipWithIndex)
+              for(((_x, _y), index) <- area.zipWithIndex)
                 yield {
                   val x = -(_x*blockWidth) + index*blockWidth
                   val y = -(_y*blockHeight)
@@ -204,12 +207,12 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
       }
     }
 
-    def find[T](arr:Seq[(T, Rectangle)]):Set[T] = synchronized{
+    def find[T](arr:Seq[(T, Rectangle)]):List[T] = synchronized{
       try{
         arr.foldLeft(Set.empty[T]){
           case (s, (t, r)) if(pool.exists(r.intersects(_))) => s + t
           case (s, _) => s
-        }
+        }.toList
       }
       finally{
         pool.clear
