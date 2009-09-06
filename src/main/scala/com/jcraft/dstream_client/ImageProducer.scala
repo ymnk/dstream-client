@@ -30,20 +30,49 @@ package com.jcraft.dstream_client
 import _root_.java.io.ByteArrayOutputStream
 import _root_.java.awt.Image
 import _root_.java.awt.image.BufferedImage
+import _root_.javax.imageio._
+
+object ImageProducer{
+  val imageFormats = Array("jpg", "png")
+
+  val iWriter = imageFormats.foldLeft(Map.empty[String, ImageWriter]){
+     case (m, fmt) => 
+       val writer = ImageIO.getImageWritersByFormatName(fmt).next
+       m + (fmt -> writer.asInstanceOf[ImageWriter])
+  }
+}
 
 trait ImageProducer{ self:Uploader =>
+  import ImageProducer._
+
+  private var _imageFormat = "jpg"
+
+  def imageFormat = _imageFormat
+
+  def imageFormat_=(format:String){
+    if(imageFormats.exists(_==format)){
+      _imageFormat = format
+    }
+  }
+
   def upload[A](imgh: Image => A){
     self.post(update(imgh))
   }
+
   def update[A](imgh: Image => A):Seq[Param]
+
   def stop(){
     self.post(List(FieldParam("offair", "offair")))
   }
 
-  def toByteArray(image:BufferedImage)={
+  def toByteArray(image:BufferedImage) = {
     new ByteArrayOutputStream match { case b =>
-      import javax.imageio.ImageIO
-      ImageIO.write(image, "jpeg", b)
+      val writer = iWriter(imageFormat)
+      writer.synchronized{
+        writer.setOutput(ImageIO.createImageOutputStream(b))
+        writer.write(image)
+        writer.reset
+      }
       b.close
       b.toByteArray
     }
