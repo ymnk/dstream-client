@@ -31,9 +31,8 @@ import java.awt.{Robot, Rectangle, Image}
 
 class ImageProducerRobot(override val uri:String, w:Int, h:Int) 
   extends ImageProducer with Uploader {
-  
-  imageWidth = w
-  imageHeight = h
+
+  setSize(w, h)
 
   private val robot = new Robot 
 

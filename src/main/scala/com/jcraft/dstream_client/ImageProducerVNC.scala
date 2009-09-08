@@ -115,12 +115,9 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
 
   def setImage(_image:Image){
     image=_image.asInstanceOf[java.awt.image.BufferedImage]
-    imageWidth=image.getWidth
-    imageHeight=image.getHeight
-
-      // TODO
-    imageWidth = w
-    imageHeight = h
+    // TODO
+    //setSize(image.getWidth, image.getHeight)
+    setSize(w, h)
   }
 
   def removeImage()=this.synchronized{

@@ -36,6 +36,8 @@ import _root_.scala.collection.mutable.{Map,Set}
 object ImageProducer{
   val imageFormats = Array("jpg", "png")
 
+  val desktopSizes = Array("1024x768", "768x768", "768x512")
+
   val iWriter = imageFormats.foldLeft(Map.empty[String, ImageWriter]){
      case (m, fmt) => 
        val writer = ImageIO.getImageWritersByFormatName(fmt).next
@@ -53,10 +55,17 @@ trait ImageProducer{ self:Uploader =>
 
   protected val dirty = new Dirty
 
-  private lazy val grid = {
-    for{(y,j)<-(0 until imageHeight by blockHeight).toList.zipWithIndex
-        (x,i) <- (0 until imageWidth by blockWidth).toList.zipWithIndex}
-      yield ((i -> j) -> new Rectangle(x, y, blockWidth, blockHeight))
+  protected var grid: Seq[((Int,Int), Rectangle)] = Nil
+
+  protected var resized =  false
+  def setSize(w:Int, h:Int){
+    imageWidth = w
+    imageHeight = h
+    grid = 
+      for{(y,j)<-(0 until imageHeight by blockHeight).toList.zipWithIndex
+          (x,i) <- (0 until imageWidth by blockWidth).toList.zipWithIndex}
+        yield ((i -> j) -> new Rectangle(x, y, blockWidth, blockHeight))
+    resized = true
   }
 
   private var _imageFormat = "jpg"
@@ -151,6 +160,11 @@ trait ImageProducer{ self:Uploader =>
           _image.flush
 	}
       case _ =>
+    }
+
+    if(resized){
+      params ::= FieldParam("desktop-size", imageWidth+"x"+imageHeight)
+      resized = false
     }
 
     params
