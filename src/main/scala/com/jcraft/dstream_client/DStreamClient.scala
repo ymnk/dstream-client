@@ -53,16 +53,27 @@ object DStreamClient extends SimpleGUIApplication {
   val iconHeight = 192
 
   lazy val Array(username, passwd):Array[String] = {
-    prompt("E-mail Address & Password for DStream", Array("E-mail address", "Password"), Array(true, false)). 
+    prompt("DStream Login", Array("E-mail address", "Password"), Array(true, false)). 
       getOrElse{System.exit(0); Array[String]() }
   }
 
   def top = new MainFrame() {
     title = "DStream Client"
 
-    val channel = new TextField("your channel name")
+    val channel = new TextField("channel name")
 
     val imageProducer = new ComboBox(List("Robot", "VNC"))
+    val imageFormat = new ComboBox(ImageProducer.imageFormats){ self =>
+      import javax.swing.JComboBox
+      import java.awt.event.{ItemListener, ItemEvent}
+      peer.addItemListener(new ItemListener(){
+        def itemStateChanged(e:ItemEvent){
+          if(e.getStateChange == ItemEvent.SELECTED){
+            imagePoster.map(_.ip.imageFormat = self.selection.item)
+          }
+        }
+      })
+    }
 
     val btnConnect = new Button("Connect"){
       reactions += {
@@ -85,6 +96,7 @@ object DStreamClient extends SimpleGUIApplication {
 
               val iproducer = getImageProducer(imageProducer.selection.item,
                                                url+channel.text.trim)
+              iproducer.imageFormat = imageFormat.selection.item
               val iposter = new ImagePoster(iproducer)(
                 new { def update(img:Image){ drawImage(img) } }
               )
@@ -102,12 +114,12 @@ object DStreamClient extends SimpleGUIApplication {
       label.icon = new ImageIcon(new BufferedImage(iconWidth, iconHeight, RGB))
       this.add(new ScrollPane(label), Center)
       val p = new FlowPanel{
-        this.contents.append(channel, imageProducer, btnConnect)
+        this.contents.append(channel, imageProducer, imageFormat, btnConnect)
       }
       this.add(p, South)
     }
 
-    size = (300, 300)
+    size = (350, 300)
   }
 
   private def clearImage() = label.icon match{ case icon:ImageIcon =>

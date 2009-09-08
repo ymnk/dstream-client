@@ -37,9 +37,8 @@ object ImagePoster{
   object Ping extends MESSAGE
 }
 
-class ImagePoster(ip:ImageProducer)(iu:{def update(img:Image):Unit})
-  extends Actor{
-
+class ImagePoster(private[dstream_client] val ip:ImageProducer)
+                 (iu:{def update(img:Image):Unit}) extends Actor{
   import ImagePoster._
 
   var interval = 3000L
