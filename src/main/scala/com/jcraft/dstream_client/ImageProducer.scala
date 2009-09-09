@@ -33,18 +33,7 @@ import _root_.java.awt.image.BufferedImage
 import _root_.javax.imageio._
 import _root_.scala.collection.mutable.{Map,Set}
 
-object ImageProducer{
-  val imageFormats = Array("jpg", "png")
-
-  val iWriter = imageFormats.foldLeft(Map.empty[String, ImageWriter]){
-     case (m, fmt) => 
-       val writer = ImageIO.getImageWritersByFormatName(fmt).next
-       m + (fmt -> writer.asInstanceOf[ImageWriter])
-  }
-}
-
 trait ImageProducer{ self:Uploader =>
-  import ImageProducer._
 
   protected var imageWidth:Int = _
   protected var imageHeight:Int = _
@@ -67,15 +56,7 @@ trait ImageProducer{ self:Uploader =>
     resized = true
   }
 
-  private var _imageFormat = imageFormats.first
-
-  def imageFormat = _imageFormat
-
-  def imageFormat_=(format:String){
-    if(imageFormats.exists(_==format)){
-      _imageFormat = format
-    }
-  }
+  var imageFormat = ImageFormat.default
 
   def upload[A](imgh: Image => A){
     self.post(update(imgh))
@@ -85,19 +66,6 @@ trait ImageProducer{ self:Uploader =>
 
   def stop(){
     self.post(List(FieldParam("off-air", "off-air")))
-  }
-
-  protected def toByteArray(image:BufferedImage) = {
-    new ByteArrayOutputStream match { case b =>
-      val writer = iWriter(imageFormat)
-      writer.synchronized{
-        writer.setOutput(ImageIO.createImageOutputStream(b))
-        writer.write(image)
-        writer.reset
-      }
-      b.close
-      b.toByteArray
-    }
   }
 
   class Dirty{
@@ -149,9 +117,9 @@ trait ImageProducer{ self:Uploader =>
                                      blockWidth, blockHeight)
               }
           }
-          params ::= FieldParam("image-format", imageFormat)
+          params ::= FieldParam("image-format", imageFormat.toString)
           params ::= FieldParam("update", updates.mkString("&"))
-          val data = toByteArray(_image)
+          val data = imageFormat.toByteArray(_image)
           params ::= DataParam("data", "data",  data, None)
         }
         finally{

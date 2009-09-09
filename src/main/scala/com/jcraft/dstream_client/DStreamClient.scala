@@ -43,12 +43,15 @@ object DStreamClient extends SimpleGUIApplication {
   val iconWidth = 256
   val iconHeight = 192
 
-  var imageFormat = ImageProducer.imageFormats.first
+  var imageFormat = ImageFormat.default
 
   var desktop = Desktop.default
 
   lazy val Array(username, passwd):Array[String] = {
-    prompt("DStream Login", Array("E-mail address", "Password"), Array(true, false)). 
+    Util.prompt("DStream Login", 
+                Array("E-mail address", "Password"), 
+                Array(true, false),
+                Array("", "")).
       getOrElse{System.exit(0); Array[String]() }
   }
 
@@ -62,14 +65,14 @@ object DStreamClient extends SimpleGUIApplication {
       }
       contents += new Menu("Tool") {
         contents += new Menu("Image Format") {
-          val items:Seq[CheckMenuItem] = ImageProducer.imageFormats.map{item =>
-                        new CheckMenuItem(item){
+          val items:Seq[CheckMenuItem] = ImageFormat.list.map{item =>
+                        new CheckMenuItem(item.toString){
                           peer.setState(item == imageFormat)
-                          action = Action(item) { 
+                          action = Action(item.toString) { 
                             imagePoster.map(_.ip.imageFormat = item)
                             imageFormat = item
                             items.foreach{m =>
-                               m.peer.setState(m.peer.getText == imageFormat)
+                               m.peer.setState(m.peer.getText == imageFormat.toString)
                             }
                             setTitle
                           }
@@ -141,14 +144,14 @@ object DStreamClient extends SimpleGUIApplication {
       label.icon = new ImageIcon(new BufferedImage(iconWidth, iconHeight, RGB))
       this.add(new ScrollPane(label), Center)
       val p = new FlowPanel{
-        this.contents.append(channel, imageProducer, /*imageFormat,*/ btnConnect)
+        this.contents.append(channel, imageProducer, btnConnect)
       }
       this.add(p, South)
     }
 
     def setTitle{
       title = "DStream Client: "+
-               imagePoster.map(_ => channel.text.trim).getOrElse("not connected")+" "+
+               imagePoster.map(_ => channel.text.trim).getOrElse("")+" "+
                desktop.toString+" "+
                imageFormat
     } 
@@ -176,9 +179,10 @@ object DStreamClient extends SimpleGUIApplication {
   private def getImageProducer(typ:String, url:String) =  typ match {
     case "VNC" => 
       val Array(host, _port, passwd):Array[String] = {
-        prompt("VNC Connection", 
-               Array("Host", "TCP Port", "Password"), 
-               Array(true, true, false)).
+        Util.prompt("VNC Connection", 
+                    Array("Host", "TCP Port", "Password"), 
+                    Array(true, true, false),
+                    Array("127.0.0.1", "5900", "")).
           getOrElse{System.exit(0); Array[String]() }
       }
       val port = if(_port.toInt < 5900) _port.toInt+5900 else 5900
@@ -186,58 +190,5 @@ object DStreamClient extends SimpleGUIApplication {
                            host, port, Some(passwd))
     case _ => 
       new ImageProducerRobot(url, desktop.width, desktop.height)
-  }
-
-  def prompt(instruction:String,
-             prompt:Array[String],
-             echo:Array[Boolean]):Option[Array[String]]={
-
-    import java.awt._
-    import javax.swing._
-
-    val gbc = new GridBagConstraints(0,0,1,1,1,1,
-                                     GridBagConstraints.NORTHWEST,
-                                     GridBagConstraints.NONE,
-                                     new Insets(0,0,0,0),0,0)
-
-    val panel = new JPanel()
-    panel.setLayout(new GridBagLayout())
-
-    gbc.weightx = 1.0
-    gbc.gridwidth = GridBagConstraints.REMAINDER
-    gbc.gridx = 0
-    panel.add(new JLabel(instruction), gbc)
-    gbc.gridy += 1
-
-    gbc.gridwidth = GridBagConstraints.RELATIVE
-
-    val texts = new Array[JTextField](prompt.length)
-    for(i <- 0 until prompt.length){
-      gbc.fill = GridBagConstraints.NONE
-      gbc.gridx = 0
-      gbc.weightx = 1
-      panel.add(new JLabel(prompt(i)), gbc)
-
-      gbc.gridx = 1
-      gbc.fill = GridBagConstraints.HORIZONTAL
-      gbc.weighty = 1
-      if(echo(i)){
-        texts(i) = new JTextField(20)
-      }
-      else{
-        texts(i) = new JPasswordField(20)
-      }
-      panel.add(texts(i), gbc)
-      gbc.gridy += 1
-    }
-
-    import JOptionPane._
-    if(showConfirmDialog(null, panel, "", 
-                         OK_CANCEL_OPTION, QUESTION_MESSAGE) == OK_OPTION){
-      Some(texts.map(_.getText))
-    }
-    else{
-      None
-    }
   }
 }
