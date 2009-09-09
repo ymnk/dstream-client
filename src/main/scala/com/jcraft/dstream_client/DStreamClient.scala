@@ -30,21 +30,12 @@ package com.jcraft.dstream_client
 import _root_.java.net.{Authenticator, PasswordAuthentication}
 import _root_.java.awt.{Image, Color}
 import _root_.javax.swing.ImageIcon
-import swing.{Label, SimpleGUIApplication, MainFrame, Button}
-import swing.{BorderPanel, ScrollPane, ComboBox, FlowPanel, TextField}
-import swing.event.ButtonClicked
+import swing._
+import swing.event._
 
 object DStreamClient extends SimpleGUIApplication {
 
   val url = "http://lift.jcraft.com/dstream/update/"
-  
-  import java.awt.{GraphicsEnvironment => GE}
-  val (dWidth, dHeight) = GE.getLocalGraphicsEnvironment match{
-    case env =>
-      val displayMode = env.getDefaultScreenDevice.getDisplayMode
-//      (displayMode.getWidth, displayMode.getHeight)
-      (1024, 768)
-  }
 
   var imagePoster:Option[ImagePoster] = None
 
@@ -52,28 +43,63 @@ object DStreamClient extends SimpleGUIApplication {
   val iconWidth = 256
   val iconHeight = 192
 
+  var imageFormat = ImageProducer.imageFormats.first
+
+  var desktop = Desktop.default
+
   lazy val Array(username, passwd):Array[String] = {
     prompt("DStream Login", Array("E-mail address", "Password"), Array(true, false)). 
       getOrElse{System.exit(0); Array[String]() }
   }
 
   def top = new MainFrame() {
-    title = "DStream Client"
+
+    menuBar = new MenuBar {
+      contents += new Menu("File") {
+        contents += new MenuItem(Action("Exit") {
+          System.exit(0)
+        })
+      }
+      contents += new Menu("Tool") {
+        contents += new Menu("Image Format") {
+          val items:Seq[CheckMenuItem] = ImageProducer.imageFormats.map{item =>
+                        new CheckMenuItem(item){
+                          peer.setState(item == imageFormat)
+                          action = Action(item) { 
+                            imagePoster.map(_.ip.imageFormat = item)
+                            imageFormat = item
+                            items.foreach{m =>
+                               m.peer.setState(m.peer.getText == imageFormat)
+                            }
+                            setTitle
+                          }
+                        }
+                      }
+          items.foreach{contents += _}
+        }
+        contents += new Menu("Descktop Size") {
+          val items:Seq[CheckMenuItem] = Desktop.list.map{ _desktop =>
+                        new CheckMenuItem(_desktop.toString){
+                          peer.setState(_desktop == desktop)
+                          action = Action(_desktop.toString) { 
+                            val (w, h) = (_desktop.width, _desktop.height)
+                            imagePoster.map(_.ip.setSize(w, h))
+                            desktop = _desktop
+                            items.foreach{m =>
+                               m.peer.setState(m.peer.getText == desktop.toString)
+                            }
+                            setTitle
+                          }
+                        }
+                      }
+          items.foreach{ contents += _ }
+        }
+      }
+    }
 
     val channel = new TextField("channel name")
 
     val imageProducer = new ComboBox(List("Robot", "VNC"))
-    val imageFormat = new ComboBox(ImageProducer.imageFormats){ self =>
-      import javax.swing.JComboBox
-      import java.awt.event.{ItemListener, ItemEvent}
-      peer.addItemListener(new ItemListener(){
-        def itemStateChanged(e:ItemEvent){
-          if(e.getStateChange == ItemEvent.SELECTED){
-            imagePoster.map(_.ip.imageFormat = self.selection.item)
-          }
-        }
-      })
-    }
 
     val btnConnect = new Button("Connect"){
       reactions += {
@@ -96,7 +122,7 @@ object DStreamClient extends SimpleGUIApplication {
 
               val iproducer = getImageProducer(imageProducer.selection.item,
                                                url+channel.text.trim)
-              iproducer.imageFormat = imageFormat.selection.item
+              iproducer.imageFormat = imageFormat
               val iposter = new ImagePoster(iproducer)(
                 new { def update(img:Image){ drawImage(img) } }
               )
@@ -104,6 +130,7 @@ object DStreamClient extends SimpleGUIApplication {
               this.text = "Disconnect"
               Some(iposter)
           }
+          setTitle
       }
     }
 
@@ -114,10 +141,19 @@ object DStreamClient extends SimpleGUIApplication {
       label.icon = new ImageIcon(new BufferedImage(iconWidth, iconHeight, RGB))
       this.add(new ScrollPane(label), Center)
       val p = new FlowPanel{
-        this.contents.append(channel, imageProducer, imageFormat, btnConnect)
+        this.contents.append(channel, imageProducer, /*imageFormat,*/ btnConnect)
       }
       this.add(p, South)
     }
+
+    def setTitle{
+      title = "DStream Client: "+
+               imagePoster.map(_ => channel.text.trim).getOrElse("not connected")+" "+
+               desktop.toString+" "+
+               imageFormat
+    } 
+
+    setTitle
 
     size = (350, 300)
   }
@@ -146,9 +182,10 @@ object DStreamClient extends SimpleGUIApplication {
           getOrElse{System.exit(0); Array[String]() }
       }
       val port = if(_port.toInt < 5900) _port.toInt+5900 else 5900
-      new ImageProducerVNC(url, dWidth, dHeight, host, port, Some(passwd))
+      new ImageProducerVNC(url, desktop.width, desktop.height,
+                           host, port, Some(passwd))
     case _ => 
-      new ImageProducerRobot(url, dWidth, dHeight)
+      new ImageProducerRobot(url, desktop.width, desktop.height)
   }
 
   def prompt(instruction:String,
