@@ -27,32 +27,23 @@ modification, are permitted provided that the following conditions are met:
 */
 package com.jcraft.dstream_client
 
-import java.awt.{Robot, Rectangle, Image}
+import _root_.javax.imageio._
+import _root_.scala.collection.mutable.{Map,Set}
+import _root_.java.awt.image.BufferedImage
+import _root_.java.io.ByteArrayOutputStream
 
-class ImageProducerRobot(override val uri:String, w:Int, h:Int) 
-  extends ImageProducer with Uploader {
+object Interval{
+  val list = List(new Interval(3), 
+                  new Interval(4), 
+                  new Interval(5),
+                  new Interval(6),
+                  new Interval(7),
+                  new Interval(8),
+                  new Interval(9),
+                  new Interval(10))
+  def default = list.first
+}
 
-  setSize(w, h)
-
-  private val robot = new Robot 
-
-  def update[A](imgh: Image => A):Seq[Param] = {
-    val img = robot.createScreenCapture(new Rectangle(0, 0, w, h))
-    try{ 
-      imgh(img)
-      damaged.add(0, 0, imageWidth, imageHeight)
-      dataParam(img)
-    }
-    finally{
-      img.flush
-    }
-  }
-
-  override def dataParam(image:Image) = {
-    val param = super.dataParam(image)
-    if(param.isEmpty)
-      param
-    else
-      FieldParam("full-update", "full-update")::param
-  }
+class Interval(private[dstream_client]val interval:Int){
+  override def toString:String = interval.toString+" seconds"
 }

@@ -47,6 +47,8 @@ object DStreamClient extends SimpleGUIApplication {
 
   var desktop = Desktop.default
 
+  var interval = Interval.default
+
   var userpass:Option[(String, String)] = None 
 
   def top = new MainFrame() {
@@ -58,6 +60,7 @@ object DStreamClient extends SimpleGUIApplication {
         })
       }
       contents += new Menu("Tool") {
+
         contents += new Menu("Image Format") {
           val items:Seq[CheckMenuItem] = ImageFormat.list.map{_imageFormat =>
                         new CheckMenuItem(_imageFormat.toString){
@@ -74,6 +77,7 @@ object DStreamClient extends SimpleGUIApplication {
                       }
           items.foreach{contents += _}
         }
+
         contents += new Menu("Descktop Size") {
           val items:Seq[CheckMenuItem] = Desktop.list.map{ _desktop =>
                         new CheckMenuItem(_desktop.toString){
@@ -91,6 +95,24 @@ object DStreamClient extends SimpleGUIApplication {
                       }
           items.foreach{ contents += _ }
         }
+
+        contents += new Menu("Interval") {
+          val items:Seq[CheckMenuItem] = Interval.list.map{ _interval =>
+                        new CheckMenuItem(_interval.toString){
+                          peer.setState(_interval == interval)
+                          action = Action(_interval.toString) { 
+                            imagePoster.map(_.interval = _interval)
+                            interval = _interval
+                            items.foreach{m =>
+                               m.peer.setState(m.peer.getText == interval.toString)
+                            }
+                            update
+                          }
+                        }
+                      }
+          items.foreach{ contents += _ }
+        }
+
       }
     }
 
@@ -118,6 +140,7 @@ object DStreamClient extends SimpleGUIApplication {
                   val iposter = new ImagePoster(iproducer)(
                     new { def update(img:Image){ drawImage(img) } }
                   )
+                  iposter.interval = interval 
                   iposter.start
                   this.text = "Disconnect"
                   iposter

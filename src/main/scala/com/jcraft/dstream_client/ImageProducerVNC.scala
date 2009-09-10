@@ -53,7 +53,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
       self.setImage(image)
     }
     def update(x:Int, y:Int, width:Int, height:Int){
-      dirty.add(x, y, width, height)
+      damaged.add(x, y, width, height)
     }
     def moveCursor(x:Int, y:Int){
       if(cursorX != x || cursorY != y){
@@ -122,7 +122,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
 
   def removeImage()=this.synchronized{
     if(image!=null){
-      dirty.add(0, 0, imageWidth, imageHeight)
+      damaged.add(0, 0, imageWidth, imageHeight)
       image = null
       offAir = true
     }

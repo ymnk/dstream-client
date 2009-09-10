@@ -40,7 +40,7 @@ trait ImageProducer{ self:Uploader =>
   protected var blockWidth = 256
   protected var blockHeight = 256
 
-  protected val dirty = new Dirty
+  protected val damaged = new DamagedArea
 
   protected var grid: Seq[((Int,Int), Rectangle)] = Nil
 
@@ -51,56 +51,25 @@ trait ImageProducer{ self:Uploader =>
       for{(x,i)<-(0 until imageWidth by blockWidth).toList.zipWithIndex
           (y,j)<-(0 until imageHeight by blockHeight).toList.zipWithIndex}
         yield ((i -> j) -> new Rectangle(x, y, blockWidth, blockHeight))
-    dirty.clear()
-    dirty.add(0, 0, w, h)
+    damaged.clear()
+    damaged.add(0, 0, w, h)
   }
 
   var imageFormat = ImageFormat.default
+
+  def update[A](imgh: Image => A):Seq[Param]
 
   def upload[A](imgh: Image => A){
     self.post(update(imgh))
   }
 
-  def update[A](imgh: Image => A):Seq[Param]
-
   def stop(){
     self.post(List(FieldParam("off-air", "off-air")))
   }
 
-  class Dirty{
-    private var pool = Set.empty[Rectangle]
-    def add(x:Int, y:Int, w:Int, h:Int):Unit = synchronized{
-      var r=new Rectangle(x, y, w, h)
-      val rr=for(p<-pool if p.intersects(r)) yield p
-      if(rr.isEmpty){
-        pool += r
-      }
-      else{
-        pool --= rr
-        pool += rr.foldLeft(r){(b, r)=>b.union(r)} 
-      }
-    }
-
-    def find[T](arr:Seq[(T, Rectangle)]):List[T] = synchronized{
-      try{
-        arr.foldRight(List[T]()){
-          case ((t, r), l) if(pool.exists(r.intersects(_))) => t :: l
-          case (_, l) => l
-        }
-      }
-      finally{
-        pool.clear
-      }
-    }
-
-    def clear():Unit = synchronized{
-      pool.clear
-    }
-  }
-
   protected def dataParam(image:Image):List[Param] = {
     var params:List[Param] = Nil
-    dirty.find(grid) match{
+    damaged.find(grid) match{
       case area if area.size > 0 =>
         val _image = new BufferedImage(area.size*blockWidth, blockHeight, 
                                        BufferedImage.TYPE_3BYTE_BGR)

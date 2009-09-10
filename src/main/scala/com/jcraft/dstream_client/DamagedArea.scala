@@ -27,32 +27,36 @@ modification, are permitted provided that the following conditions are met:
 */
 package com.jcraft.dstream_client
 
-import java.awt.{Robot, Rectangle, Image}
+import _root_.java.awt.Rectangle
+import _root_.scala.collection.mutable.Set
 
-class ImageProducerRobot(override val uri:String, w:Int, h:Int) 
-  extends ImageProducer with Uploader {
-
-  setSize(w, h)
-
-  private val robot = new Robot 
-
-  def update[A](imgh: Image => A):Seq[Param] = {
-    val img = robot.createScreenCapture(new Rectangle(0, 0, w, h))
-    try{ 
-      imgh(img)
-      damaged.add(0, 0, imageWidth, imageHeight)
-      dataParam(img)
+class DamagedArea{
+  private var pool = Set.empty[Rectangle]
+  def add(x:Int, y:Int, w:Int, h:Int):Unit = synchronized{
+    var r=new Rectangle(x, y, w, h)
+    val rr=for(p<-pool if p.intersects(r)) yield p
+    if(rr.isEmpty){
+      pool += r
     }
-    finally{
-      img.flush
+    else{
+      pool --= rr
+      pool += rr.foldLeft(r){(b, r)=>b.union(r)} 
     }
   }
 
-  override def dataParam(image:Image) = {
-    val param = super.dataParam(image)
-    if(param.isEmpty)
-      param
-    else
-      FieldParam("full-update", "full-update")::param
+  def find[T](arr:Seq[(T, Rectangle)]):List[T] = synchronized{
+    try{
+      arr.foldRight(List[T]()){
+        case ((t, r), l) if(pool.exists(r.intersects(_))) => t :: l
+        case (_, l) => l
+      }
+    }
+    finally{
+      clear()
+    }
+  }
+
+  def clear():Unit = synchronized{
+    pool.clear
   }
 }

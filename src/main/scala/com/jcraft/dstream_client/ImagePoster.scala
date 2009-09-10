@@ -41,7 +41,7 @@ class ImagePoster(private[dstream_client] val ip:ImageProducer)
                  (iu:{def update(img:Image):Unit}) extends Actor{
   import ImagePoster._
 
-  var interval = 3000L
+  var interval = Interval.default
 
   def act(){
     this ! Ping
@@ -49,7 +49,7 @@ class ImagePoster(private[dstream_client] val ip:ImageProducer)
       react{
         case Ping =>
           ip.upload{iu.update(_) }
-          ping(interval, Ping)
+          ping(interval.interval*1000L, Ping)
         case Stop => 
           ip.stop()
           exit()
