@@ -75,7 +75,7 @@ trait ImageProducer{ self:Uploader =>
                                        BufferedImage.TYPE_3BYTE_BGR)
         val _graphics = _image.getGraphics
         try{
-          val updates = {
+          val updates = image.synchronized{
             for(((_x, _y), index) <- area.zipWithIndex)
               yield {
                 val x = -(_x*blockWidth) + index*blockWidth

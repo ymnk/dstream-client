@@ -84,7 +84,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
 
       if(image==null) return params
 
-      imgh(image)
+      image.synchronized{ imgh(image) }
 
       if(cursorMoved || 
          (System.currentTimeMillis - lastUpdate > 30*1000)){ // heart beat
