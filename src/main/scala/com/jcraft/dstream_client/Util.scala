@@ -30,6 +30,22 @@ package com.jcraft.dstream_client
 import _root_.java.net.{Authenticator, PasswordAuthentication}
 
 object Util{
+  def promptUserPasswd:Option[(String, String)] = {
+      prompt("DStream Login", 
+             Array("E-mail address", "Password"), 
+             Array(true, false),
+             Array("", "")).map{case Array(user, pass) => (user -> pass)}
+  }
+
+  def promptVNC:Option[(String, String, String)] = {
+    prompt("VNC Connection", 
+           Array("Host", "TCP Port", "Password"), 
+           Array(true, true, false),
+           Array("127.0.0.1", "5900", "")).map{
+      case Array(host, port, pass) =>(host, port, pass)
+     }
+  }
+
   def prompt(instruction:String,
              prompt:Array[String],
              echo:Array[Boolean],
@@ -84,4 +100,15 @@ object Util{
       None
     }
   }
+
+  def auth(user:String, passwd:String){
+    Authenticator.setDefault(
+      new Authenticator {
+        override def getPasswordAuthentication = {
+          new PasswordAuthentication(user, passwd.toCharArray)
+        }
+      }
+    )
+  }
+
 }

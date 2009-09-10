@@ -47,13 +47,7 @@ object DStreamClient extends SimpleGUIApplication {
 
   var desktop = Desktop.default
 
-  lazy val Array(username, passwd):Array[String] = {
-    Util.prompt("DStream Login", 
-                Array("E-mail address", "Password"), 
-                Array(true, false),
-                Array("", "")).
-      getOrElse{System.exit(0); Array[String]() }
-  }
+  var userpass:Option[(String, String)] = None 
 
   def top = new MainFrame() {
 
@@ -65,16 +59,16 @@ object DStreamClient extends SimpleGUIApplication {
       }
       contents += new Menu("Tool") {
         contents += new Menu("Image Format") {
-          val items:Seq[CheckMenuItem] = ImageFormat.list.map{item =>
-                        new CheckMenuItem(item.toString){
-                          peer.setState(item == imageFormat)
-                          action = Action(item.toString) { 
-                            imagePoster.map(_.ip.imageFormat = item)
-                            imageFormat = item
+          val items:Seq[CheckMenuItem] = ImageFormat.list.map{_imageFormat =>
+                        new CheckMenuItem(_imageFormat.toString){
+                          peer.setState(_imageFormat == imageFormat)
+                          action = Action(_imageFormat.toString) { 
+                            imageFormat = _imageFormat
+                            imagePoster.map(_.ip.imageFormat = imageFormat)
                             items.foreach{m =>
                                m.peer.setState(m.peer.getText == imageFormat.toString)
                             }
-                            setTitle
+                            update
                           }
                         }
                       }
@@ -91,7 +85,7 @@ object DStreamClient extends SimpleGUIApplication {
                             items.foreach{m =>
                                m.peer.setState(m.peer.getText == desktop.toString)
                             }
-                            setTitle
+                            update
                           }
                         }
                       }
@@ -114,26 +108,23 @@ object DStreamClient extends SimpleGUIApplication {
               clearImage
               None
             case _ =>
-              val _passwd = passwd.toCharArray
-              Authenticator.setDefault(
-                new Authenticator {
-                  override def getPasswordAuthentication = {
-                    new PasswordAuthentication(username, _passwd)
-                  }
-                }
-              )
-
-              val iproducer = getImageProducer(imageProducer.selection.item,
-                                               url+channel.text.trim)
-              iproducer.imageFormat = imageFormat
-              val iposter = new ImagePoster(iproducer)(
-                new { def update(img:Image){ drawImage(img) } }
-              )
-              iposter.start
-              this.text = "Disconnect"
-              Some(iposter)
+              import Util._
+              (userpass orElse promptUserPasswd).map{ case up@(user, passwd) =>
+                auth(user, passwd)
+                userpass = Some(up)
+                getImageProducer(imageProducer.selection.item,
+                                 url+channel.text.trim).map{ iproducer => 
+                  iproducer.imageFormat = imageFormat
+                  val iposter = new ImagePoster(iproducer)(
+                    new { def update(img:Image){ drawImage(img) } }
+                  )
+                  iposter.start
+                  this.text = "Disconnect"
+                  iposter
+  	        }
+              }.getOrElse(None)
           }
-          setTitle
+          update
       }
     }
 
@@ -156,7 +147,11 @@ object DStreamClient extends SimpleGUIApplication {
                imageFormat
     } 
 
-    setTitle
+    def update{
+      setTitle
+    }
+
+    update
 
     size = (350, 300)
   }
@@ -178,17 +173,12 @@ object DStreamClient extends SimpleGUIApplication {
 
   private def getImageProducer(typ:String, url:String) =  typ match {
     case "VNC" => 
-      val Array(host, _port, passwd):Array[String] = {
-        Util.prompt("VNC Connection", 
-                    Array("Host", "TCP Port", "Password"), 
-                    Array(true, true, false),
-                    Array("127.0.0.1", "5900", "")).
-          getOrElse{System.exit(0); Array[String]() }
+      Util.promptVNC.map{ case (host, _port, passwd) =>
+        val port = if(_port.toInt < 5900) _port.toInt+5900 else 5900
+        new ImageProducerVNC(url, desktop.width, desktop.height,
+                             host, port, Some(passwd))
       }
-      val port = if(_port.toInt < 5900) _port.toInt+5900 else 5900
-      new ImageProducerVNC(url, desktop.width, desktop.height,
-                           host, port, Some(passwd))
     case _ => 
-      new ImageProducerRobot(url, desktop.width, desktop.height)
+      Some(new ImageProducerRobot(url, desktop.width, desktop.height))
   }
 }
