@@ -44,16 +44,15 @@ trait ImageProducer{ self:Uploader =>
 
   protected var grid: Seq[((Int,Int), Rectangle)] = Nil
 
-  protected var resized =  false
   def setSize(w:Int, h:Int){
     imageWidth = w
     imageHeight = h
     grid = 
-      for{(y,j)<-(0 until imageHeight by blockHeight).toList.zipWithIndex
-          (x,i) <- (0 until imageWidth by blockWidth).toList.zipWithIndex}
+      for{(x,i)<-(0 until imageWidth by blockWidth).toList.zipWithIndex
+          (y,j)<-(0 until imageHeight by blockHeight).toList.zipWithIndex}
         yield ((i -> j) -> new Rectangle(x, y, blockWidth, blockHeight))
+    dirty.clear()
     dirty.add(0, 0, w, h)
-    resized = true
   }
 
   var imageFormat = ImageFormat.default
@@ -84,23 +83,24 @@ trait ImageProducer{ self:Uploader =>
 
     def find[T](arr:Seq[(T, Rectangle)]):List[T] = synchronized{
       try{
-        arr.foldLeft(Set.empty[T]){
-          case (s, (t, r)) if(pool.exists(r.intersects(_))) => s + t
-          case (s, _) => s
-        }.toList
+        arr.foldRight(List[T]()){
+          case ((t, r), l) if(pool.exists(r.intersects(_))) => t :: l
+          case (_, l) => l
+        }
       }
       finally{
         pool.clear
       }
     }
-  }
 
-  private val comparePair:((Int,Int),(Int,Int))=>Boolean =
-    (i,j) => (i._1<j._1)||((i._1==j._1)&&(i._2<=j._2))
+    def clear():Unit = synchronized{
+      pool.clear
+    }
+  }
 
   protected def dataParam(image:Image):List[Param] = {
     var params:List[Param] = Nil
-    dirty.find(grid).sort(comparePair) match{
+    dirty.find(grid) match{
       case area if area.size > 0 =>
         val _image = new BufferedImage(area.size*blockWidth, blockHeight, 
                                        BufferedImage.TYPE_3BYTE_BGR)
@@ -129,10 +129,7 @@ trait ImageProducer{ self:Uploader =>
       case _ =>
     }
 
-    if(resized){
-      params ::= FieldParam("desktop-size", imageWidth+"x"+imageHeight)
-      resized = false
-    }
+    params ::= FieldParam("desktop-size", imageWidth+"x"+imageHeight)
 
     params
   }

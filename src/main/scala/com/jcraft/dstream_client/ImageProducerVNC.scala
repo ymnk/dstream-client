@@ -73,8 +73,8 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
     while(running){
       vnc=new RFBProtocolMainImage(host, port, (password getOrElse ""),
                                    iUpdater) 
-      try{vnc.connect }catch{ case e=> println(e) }
-      try{Thread.sleep(1000) }catch{ case e=> }
+      try{vnc.connect }catch{ case e => println(e) }
+      try{Thread.sleep(1000) }catch{ case e => }
     }
   }
 
@@ -87,7 +87,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
       imgh(image)
 
       if(cursorMoved || 
-         (System.currentTimeMillis - lastUpdate > 30*1000)){ // touch remote update 
+         (System.currentTimeMillis - lastUpdate > 30*1000)){ // heart beat
         params ::= FieldParam("move-cursor", cursorX+","+cursorY)
         cursorMoved = false
       }

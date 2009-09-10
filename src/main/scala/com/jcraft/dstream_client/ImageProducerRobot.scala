@@ -40,7 +40,7 @@ class ImageProducerRobot(override val uri:String, w:Int, h:Int)
     val img = robot.createScreenCapture(new Rectangle(0, 0, w, h))
     try{ 
       imgh(img)
-      dirty.add(0, 0, w, h)
+      dirty.add(0, 0, imageWidth, imageHeight)
       dataParam(img)
     }
     finally{
