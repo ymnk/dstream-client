@@ -54,7 +54,7 @@ class RFBProtocol{
 
   import EncodeType._
   var favoriteEncodings:List[Int] =
-    List(/*Raw,*/ Hextile, CopyRect, Cursor, PointerPos)
+    List(/*Raw,*/ Hextile, /*CopyRect, */ Cursor, PointerPos)
 
   var s:Socket = _
   var out:DOS = _
