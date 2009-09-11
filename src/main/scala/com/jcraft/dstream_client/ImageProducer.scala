@@ -125,10 +125,11 @@ trait ImageProducer{ self:Uploader =>
           }
         }
 
+        if(!params.isEmpty)
+          params ::= FieldParam("desktop-size", imageWidth+"x"+imageHeight)
+
       case _ =>
     }
-
-    params ::= FieldParam("desktop-size", imageWidth+"x"+imageHeight)
 
     params
   }
