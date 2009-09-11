@@ -97,6 +97,10 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
         offAir = false
       } 
 
+      if((System.currentTimeMillis - last_fullupdate) > 60*1000){
+        damaged.add(0, 0, imageWidth, imageHeight)
+      }
+
       params :::= dataParam(image) 
 
       if(params.size>0){

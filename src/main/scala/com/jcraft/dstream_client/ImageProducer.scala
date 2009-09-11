@@ -45,6 +45,8 @@ trait ImageProducer{ self:Uploader =>
   protected var thumbnail = false
   protected var last_thumbnail = 0L
 
+  protected var last_fullupdate = 0L
+
   protected var grid: Seq[((Int,Int), Rectangle)] = Nil
 
   def setSize(w:Int, h:Int){
@@ -74,6 +76,11 @@ trait ImageProducer{ self:Uploader =>
     var params:List[Param] = Nil
     damaged.find(grid) match{
       case area if area.size > 0 =>
+
+        if(area.size == grid.size){
+          last_fullupdate = System.currentTimeMillis
+        }
+
         val _image = new BufferedImage(area.size*blockWidth, blockHeight, 
                                        BufferedImage.TYPE_3BYTE_BGR)
         val _graphics = _image.getGraphics
