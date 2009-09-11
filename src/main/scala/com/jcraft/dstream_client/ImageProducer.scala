@@ -42,6 +42,9 @@ trait ImageProducer{ self:Uploader =>
 
   protected val damaged = new DamagedArea
 
+  protected var thumbnail = false
+  protected var last_thumbnail = 0L
+
   protected var grid: Seq[((Int,Int), Rectangle)] = Nil
 
   def setSize(w:Int, h:Int){
@@ -95,6 +98,26 @@ trait ImageProducer{ self:Uploader =>
           _graphics.dispose
           _image.flush
 	}
+        
+        val currentTime = System.currentTimeMillis
+        if(thumbnail || ( currentTime - last_thumbnail) > 60*1000){
+          last_thumbnail = currentTime
+          val _image = new BufferedImage(64, 48, BufferedImage.TYPE_3BYTE_BGR);
+          val _graphics = _image.getGraphics
+          try{ 
+            image.synchronized{
+              _graphics.drawImage(image, 0, 0, null)
+            }
+            val data = imageFormat.toByteArray(_image)
+            params ::= DataParam("thumbnail", "thumbnail", data, None)
+          }
+          finally{
+            _graphics.dispose
+            _image.flush
+            thumbnail = false
+          }
+        }
+
       case _ =>
     }
 
