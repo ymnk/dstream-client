@@ -56,7 +56,8 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
       damaged.add(x, y, width, height)
     }
     def moveCursor(x:Int, y:Int){
-      if(cursorX != x || cursorY != y){
+      if(imageWidth >= x && imageHeight >= y &&
+         (cursorX != x || cursorY != y)){
         cursorX = x
         cursorY = y
         cursorMoved = true
