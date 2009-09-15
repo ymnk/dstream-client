@@ -37,8 +37,10 @@ trait ImageProducer{ self:Uploader =>
 
   protected var imageWidth:Int = _
   protected var imageHeight:Int = _
-  protected var blockWidth = 256
-  protected var blockHeight = 256
+  //protected var blockWidth = 256
+  //protected var blockHeight = 256
+  protected var blockWidth = 128
+  protected var blockHeight = 128
 
   protected val damaged = new DamagedArea
 
