@@ -45,6 +45,12 @@ class RFBProtocol{
   var frameWidth:Int = _
   var frameHeight:Int = _
 
+  var viewX:Int = 0 
+  var viewY:Int = 0 
+  var viewWidth:Int = -1 
+  var viewHeight:Int = -1 
+  var viewChanged = false
+
   val pixelFormat = new PixelFormat(32, 24, 
                                     0, 1,
                                     0xff, 0xff, 0xff,
@@ -93,9 +99,8 @@ class RFBProtocol{
 
     setEncodings
 
-    frameBufferUpdateRequest(false,
-                             0, 0,
-                             frameWidth, frameHeight)
+    frameBufferUpdateRequest(false, viewX, viewY, viewWidth, viewHeight)
+
     while(true){
       import MessageTypeS2C._
       var command = readByte
@@ -140,8 +145,8 @@ class RFBProtocol{
           if(in.available > 0){
           }
           else{
-          frameBufferUpdateRequest(true,
-                                   0, 0, frameWidth, frameHeight)
+            val incr = try{ !viewChanged }finally{ viewChanged = false }
+            frameBufferUpdateRequest(incr, viewX, viewY, viewWidth, viewHeight)
 //println("--")
           }
         }
@@ -217,6 +222,11 @@ class RFBProtocol{
     frameWidth = readChar
     frameHeight = readChar
 
+    if(viewWidth == -1){
+      viewWidth = frameWidth
+      viewHeight = frameHeight
+    }
+
     val bitsPerPixel = readByte
     val depth = readByte
     val bigEndianFlag = readByte
@@ -271,6 +281,14 @@ class RFBProtocol{
     s.connect(new InetSocketAddress(ip, port), TIMEOUT)
     (new DataInputStream(s.getInputStream) with ReadBytes,
      new DataOutputStream(s.getOutputStream))
+  }
+
+  def setViewSize(x:Int, y:Int, w:Int, h:Int) = synchronized{
+    viewX = x
+    viewY = y
+    viewWidth = w
+    viewHeight = h
+    viewChanged = true
   }
 }
 
@@ -692,5 +710,9 @@ class RFBProtocolMainImage(val host:String,
 
   def close{
     try{rfbp.close}catch{case e=> }
+  }
+
+  def setViewSize(x:Int, y:Int, w:Int, h:Int) = {
+    rfbp.setViewSize(x, y, w, h)
   }
 }

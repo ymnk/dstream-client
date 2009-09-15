@@ -74,6 +74,7 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
     while(running){
       vnc=new RFBProtocolMainImage(host, port, (password getOrElse ""),
                                    iUpdater) 
+      vnc.setViewSize(0, 0, imageWidth, imageHeight)
       try{vnc.connect }catch{ case e => println(e) }
       try{Thread.sleep(1000) }catch{ case e => }
     }
@@ -131,6 +132,13 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
       image = null
       offAir = true
     }
+  }
+
+  override def setSize(w:Int, h:Int){
+    if(vnc!=null){
+      vnc.setViewSize(0, 0, w, h)
+    }
+    super.setSize(w, h)
   }
 
   override def stop(){
