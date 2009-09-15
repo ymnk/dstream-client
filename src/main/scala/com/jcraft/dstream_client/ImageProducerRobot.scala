@@ -48,11 +48,4 @@ class ImageProducerRobot(override val uri:String, w:Int, h:Int)
     }
   }
 
-  override def dataParam(image:Image) = {
-    val param = super.dataParam(image)
-    if(param.isEmpty)
-      param
-    else
-      FieldParam("full-update", "full-update")::param
-  }
 }

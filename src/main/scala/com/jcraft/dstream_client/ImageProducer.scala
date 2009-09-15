@@ -77,10 +77,6 @@ trait ImageProducer{ self:Uploader =>
     damaged.find(grid) match{
       case area if area.size > 0 =>
 
-        if(area.size == grid.size){
-          last_fullupdate = System.currentTimeMillis
-        }
-
         val _image = new BufferedImage(area.size*blockWidth, blockHeight, 
                                        BufferedImage.TYPE_3BYTE_BGR)
         val _graphics = _image.getGraphics
@@ -100,6 +96,11 @@ trait ImageProducer{ self:Uploader =>
           params ::= FieldParam("update", updates.mkString("&"))
           val data = imageFormat.toByteArray(_image)
           params ::= DataParam("data", "data",  data, None)
+
+          if(area.size == grid.size){
+            last_fullupdate = System.currentTimeMillis
+            params ::=  FieldParam("full-update", "full-update")
+          }
         }
         finally{
           _graphics.dispose
