@@ -170,6 +170,8 @@ class RFBProtocol{
           val length = in.readInt
           val text = readBytes(length)
           updateAdapter.serverCutText(text)
+          val incr = try{ !viewChanged }finally{ viewChanged = false }
+          frameBufferUpdateRequest(incr, viewX, viewY, viewWidth, viewHeight)
         }
 
         case _ =>
