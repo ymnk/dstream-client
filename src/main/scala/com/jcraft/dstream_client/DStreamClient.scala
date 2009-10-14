@@ -197,7 +197,7 @@ object DStreamClient extends SimpleGUIApplication {
   private def getImageProducer(typ:String, url:String) =  typ match {
     case "VNC" => 
       Util.promptVNC.map{ case (host, _port, passwd) =>
-        val port = if(_port.toInt < 5900) _port.toInt+5900 else 5900
+        val port = if(_port.toInt < 5900) _port.toInt+5900 else _port.toInt
         new ImageProducerVNC(url, desktop.width, desktop.height,
                              host, port, Some(passwd))
       }
