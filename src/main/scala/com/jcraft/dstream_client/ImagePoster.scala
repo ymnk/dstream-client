@@ -48,7 +48,11 @@ class ImagePoster(private[dstream_client] val ip:ImageProducer)
     loop{
       react{
         case Ping =>
-          ip.upload{iu.update(_) }
+          ip.upload{iu.update(_) }.map{ 
+            case <update /> => 
+              ip.fullUpdate()
+            case _ =>
+          }
           ping(interval.interval*1000L, Ping)
         case Stop => 
           ip.stop()

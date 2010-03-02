@@ -32,6 +32,7 @@ import _root_.java.awt.{Image, Rectangle}
 import _root_.java.awt.image.BufferedImage
 import _root_.javax.imageio._
 import _root_.scala.collection.mutable.{Map,Set}
+import _root_.scala.xml._
 
 trait ImageProducer{ self:Uploader =>
 
@@ -64,17 +65,25 @@ trait ImageProducer{ self:Uploader =>
 
   var imageFormat = ImageFormat.default
 
-  def update[A](imgh: Image => A):Seq[Param]
+  def update[A](imgh: Image => A):Option[Seq[Param]]
 
-  def upload[A](imgh: Image => A){
-    self.post(update(imgh))
+  def upload[A](imgh: Image => A):Option[Elem] = {
+    update(imgh).map{ param =>
+      post(param) match {
+        case (200, Some(result)) =>
+          try{ Some(XML.loadString(result)) } catch { case _ => None }
+        //case _ => 
+        case (code, result) => 
+          None
+      }
+    } getOrElse None
   }
 
   def stop(){
-    self.post(List(FieldParam("off-air", "off-air")))
+    post(List(FieldParam("off-air", "off-air")))
   }
 
-  protected def dataParam(image:Image):List[Param] = {
+  protected def dataParam(image:Image):Option[List[Param]] = {
     var params:List[Param] = Nil
     damaged.find(grid) match{
       case area if area.size > 0 =>
@@ -134,15 +143,19 @@ trait ImageProducer{ self:Uploader =>
       case _ =>
     }
 
-    params
+    if(params.isEmpty) None else Some(params)
   }
+
+  def fullUpdate(){ damaged.add(0, 0, imageWidth, imageHeight)}
 } 
 
 trait Uploader{
   val uri:String
   val pmpfd = new PostMultiPartFormData
-  def post(param:Seq[Param]){
+  def post(param:Seq[Param])={
     if(!param.isEmpty)
       pmpfd(uri, param:_*)
+    else
+      (403, None)
   }
 }

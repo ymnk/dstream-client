@@ -80,11 +80,11 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
     }
   }
 
-  def update[A](imgh: Image => A):Seq[Param]={ 
+  def update[A](imgh: Image => A):Option[Seq[Param]]={ 
     try { 
-      var params:List[Param] = Nil
+      if(image==null) return None
 
-      if(image==null) return params
+      var params:List[Param] = Nil
 
       image.synchronized{ imgh(image) }
 
@@ -99,19 +99,20 @@ class ImageProducerVNC(override val uri:String, w:Int, h:Int,
         offAir = false
       } 
 
-      if((System.currentTimeMillis - last_fullupdate) > 60*1000){
-        damaged.add(0, 0, imageWidth, imageHeight)
-      }
+//      if((System.currentTimeMillis - last_fullupdate) > 60*1000){
+//        fullUpdate()
+//      }
 
-      params :::= dataParam(image) 
+      params :::= dataParam(image) getOrElse Nil
 
       if(params.size>0){
         lastUpdate = System.currentTimeMillis
+        Some(params)
       }
-
-      params
+      else 
+        None
     }
-    catch{ case e => Nil} 
+    catch{ case e => None} 
   }
 
   def dispose{

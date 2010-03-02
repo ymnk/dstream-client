@@ -50,7 +50,7 @@ class PostMultiPartFormData {
     }.toString.getBytes
   }
 
-  def apply(url:String, param:Param*):Option[String] = {
+  def apply(url:String, param:Param*):(Int, Option[String]) = {
     try{
 
       val con = new URL(url).openConnection match{
@@ -100,8 +100,8 @@ class PostMultiPartFormData {
       }
 
       con.getResponseCode match{
-        case code if code!=200 => None
-        case _ =>
+        case code if code!=200 => (code, None)
+        case code =>
           val result = new StringBuilder
 
           con.getInputStream match{
@@ -111,11 +111,11 @@ class PostMultiPartFormData {
             in.close
           }
 
-          Some(result.toString)
+          (code, Some(result.toString))
       }
     }
     catch{
-      case ioe => return None
+      case ioe => return (403, None)
     }
   }
 

@@ -36,7 +36,7 @@ class ImageProducerRobot(override val uri:String, w:Int, h:Int)
 
   private val robot = new Robot 
 
-  def update[A](imgh: Image => A):Seq[Param] = {
+  def update[A](imgh: Image => A):Option[Seq[Param]] = {
     val img = robot.createScreenCapture(new Rectangle(0, 0, w, h))
     try{ 
       imgh(img)
