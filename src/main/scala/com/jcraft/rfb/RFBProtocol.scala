@@ -103,8 +103,16 @@ class RFBProtocol{
 
     while(true){
       import MessageTypeS2C._
+
+      while(in.available <= 0){
+         try{ Thread.sleep(100)}catch{case e=> }
+         if(in.available <= 0){
+            val incr = try{ !viewChanged }finally{ viewChanged = false }
+            frameBufferUpdateRequest(incr, viewX, viewY, viewWidth, viewHeight)
+	 }
+      }
+
       var command = readByte
-//println(".")
       command match{
         case FramebufferUpdate =>{
           in.skipBytes(1)  // padding
@@ -141,14 +149,6 @@ class RFBProtocol{
              updateInterval>0){
             try{ Thread.sleep(updateInterval)}catch{case e=> }
           }
-
-          if(in.available > 0){
-          }
-          else{
-            val incr = try{ !viewChanged }finally{ viewChanged = false }
-            frameBufferUpdateRequest(incr, viewX, viewY, viewWidth, viewHeight)
-//println("--")
-          }
         }
 
         case SetColorMapEntries =>{
@@ -170,8 +170,6 @@ class RFBProtocol{
           val length = in.readInt
           val text = readBytes(length)
           updateAdapter.serverCutText(text)
-          val incr = try{ !viewChanged }finally{ viewChanged = false }
-          frameBufferUpdateRequest(incr, viewX, viewY, viewWidth, viewHeight)
         }
 
         case _ =>
