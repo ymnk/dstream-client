@@ -196,7 +196,7 @@ class RFBProtocol{
     val ERROR = -1
 
     val request_security_type = 
-      if(remoteVersion==33){
+      if(remoteVersion<37){
         in.readInt match {
           case 0 => 
             val reason_length=in.readInt
@@ -228,7 +228,7 @@ class RFBProtocol{
       }
 
     if(request_security_type != ERROR){
-      if(remoteVersion>33){ 
+      if(remoteVersion>=37){ 
         out.writeByte(request_security_type); out.flush
       }
       val List(auth) = favoriteAuth.filter(_.typ==request_security_type)
