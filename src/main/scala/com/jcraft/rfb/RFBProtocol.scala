@@ -496,10 +496,7 @@ object RFBProtocolMain{
   }
 }
 
-class ImageGenerator(iu: {def setImage(i:java.awt.Image):Unit
-                          def update(x:Int, y:Int, w:Int, h:Int):Unit
-                          def moveCursor(x:Int, y:Int):Unit
-                        }) extends AnyRef with RFBProtocol.UpdateAdapter{
+class ImageGenerator(iu: ImageUpdater) extends AnyRef with RFBProtocol.UpdateAdapter{
 
   import RFBProtocol.{PixelFormat, DIS, HextileType}
   import java.awt.Graphics
@@ -693,11 +690,8 @@ object RFBProtocolMainImage{
 class RFBProtocolMainImage(val host:String,
                            val port:Int,
                            val password:String,
-                           val ia:{
-                             def setImage(i:java.awt.Image):Unit
-                             def update(x:Int, y:Int, w:Int, h:Int):Unit
-                             def moveCursor(x:Int, y:Int):Unit
-                           }){
+                           val ia:ImageUpdater
+                          ){
   private val rfbp=new RFBProtocol
   rfbp.favoriteAuth = 
     rfbp.favoriteAuth ::: List(RFBProtocol.vncAuthentication)

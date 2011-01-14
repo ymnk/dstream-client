@@ -138,7 +138,7 @@ object DStreamClient extends SimpleGUIApplication {
                                  url+channel.text.trim).map{ iproducer => 
                   iproducer.imageFormat = imageFormat
                   val iposter = new ImagePoster(iproducer)(
-                    new { def update(img:Image){ drawImage(img) } }
+                    new Updater{ def update(img:Image){ drawImage(img) } }
                   )
                   iposter.interval = interval 
                   iposter.start
