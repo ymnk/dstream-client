@@ -192,19 +192,45 @@ class RFBProtocol{
   }
 
   def securityCheck(){
-    val number_of_security_types = readByte
-    val security_types=new Array[Byte](number_of_security_types)
-    in.readFully(security_types)
 
     val ERROR = -1
-    val request_security_type =
-      (ERROR /: favoriteAuth.map(_.typ)){
-        case(b@ERROR, n) => if(security_types.exists(_==n)) n else b
-        case (b, _) => b
+
+    val request_security_type = 
+      if(remoteVersion==33){
+        in.readInt match {
+          case 0 => 
+            val reason_length=in.readInt
+            val reason_string=new Array[Byte](reason_length)
+            in.readFully(reason_string)
+            println(new String(reason_string))
+            0
+           case n => n
+        }
+
+      }
+      else{
+        val number_of_security_types = readByte
+    
+        if(number_of_security_types==0){  
+          val reason_length=in.readInt
+          val reason_string=new Array[Byte](reason_length)
+          in.readFully(reason_string)
+          println(new String(reason_string))
+        }
+
+        val security_types=new Array[Byte](number_of_security_types)
+        in.readFully(security_types)
+
+        (ERROR /: favoriteAuth.map(_.typ)){
+          case(b@ERROR, n) => if(security_types.exists(_==n)) n else b
+          case (b, _) => b
+        }
       }
 
     if(request_security_type != ERROR){
-      out.writeByte(request_security_type); out.flush
+      if(remoteVersion>33){ 
+        out.writeByte(request_security_type); out.flush
+      }
       val List(auth) = favoriteAuth.filter(_.typ==request_security_type)
       auth(this)
     }
@@ -349,7 +375,16 @@ object RFBProtocol{
   trait Authentication{
     def typ:Int
     def apply(rfb:RFBProtocol):Int
-    def securityResult(rfb:RFBProtocol):Int = rfb.in.readInt
+    def securityResult(rfb:RFBProtocol):Int = 
+      rfb.in.readInt match {
+        case 0 if(rfb.remoteVersion>=38) =>
+          val reason_length=rfb.in.readInt
+          val reason_string=new Array[Byte](reason_length)
+          rfb.in.readFully(reason_string)
+          println(new String(reason_string))
+          0 
+        case n => n
+      }
   }
 
   object noneAuthentication extends Authentication{
