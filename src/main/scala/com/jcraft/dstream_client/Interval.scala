@@ -41,7 +41,7 @@ object Interval{
                   new Interval(8),
                   new Interval(9),
                   new Interval(10))
-  def default = list.first
+  def default = list.head
 }
 
 class Interval(private[dstream_client]val interval:Int){

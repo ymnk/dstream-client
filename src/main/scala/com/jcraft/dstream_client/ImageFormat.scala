@@ -41,7 +41,7 @@ object ImageFormat{
        m + (fmt -> writer.asInstanceOf[ImageWriter])
   }
 
-  def default = list.first
+  def default = list.head
 }
 
 class ImageFormat(val format:String){

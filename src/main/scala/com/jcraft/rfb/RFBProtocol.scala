@@ -500,7 +500,7 @@ object RFBProtocol{
     }
     def updateCursor(x:Int, y:Int, w:Int, h:Int){
       in.skipBytes(w*h*pixelFormat.bitsPerPixel/8)
-      in.skipBytes(h*Math.floor((w+7)/8).asInstanceOf[Int])
+      in.skipBytes(h*math.floor((w+7)/8).asInstanceOf[Int])
       println("update: Cursor")
     }
     def updatePointerPos(x:Int, y:Int){
@@ -525,7 +525,7 @@ object RFBProtocolMain{
     if(password.length>0){
       rfbp.favoriteAuth = 
         rfbp.favoriteAuth ::: List(RFBProtocol.vncAuthentication)
-      rfbp.password = password.first
+      rfbp.password = password.head
     }
     rfbp.connect(host, port.toInt)
   }
@@ -694,7 +694,7 @@ image.flush
 
   def updateCursor(x:Int, y:Int, w:Int, h:Int){
     in.skipBytes(w*h*pixelFormat.bitsPerPixel/8)
-    in.skipBytes(h*Math.floor((w+7)/8).asInstanceOf[Int])
+    in.skipBytes(h*math.floor((w+7)/8).asInstanceOf[Int])
   }
   def updatePointerPos(x:Int, y:Int){
     iu.moveCursor(x, y)
@@ -714,7 +714,7 @@ object RFBProtocolMainImage{
     if(password.length>0){
       rfbp.favoriteAuth = 
         rfbp.favoriteAuth ::: List(RFBProtocol.vncAuthentication)
-      rfbp.password = password.first
+      rfbp.password = password.head
     }
     rfbp.updateInterval = 0
 //rfbp.updateAdapter = new ImageGenerator

@@ -106,7 +106,7 @@ class PostMultiPartFormData {
 
           con.getInputStream match{
             case in =>
-            for(c <- Stream.const(in.read _).map(_()).takeWhile(_ != -1))
+            for(c <- Stream.continually(in.read _).map(_()).takeWhile(_ != -1))
               result.append(c.toChar)
             in.close
           }

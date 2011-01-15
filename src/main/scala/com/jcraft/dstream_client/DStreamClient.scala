@@ -32,8 +32,9 @@ import _root_.java.awt.{Image, Color}
 import _root_.javax.swing.ImageIcon
 import swing._
 import swing.event._
+import Swing._
 
-object DStreamClient extends SimpleGUIApplication {
+object DStreamClient extends SimpleSwingApplication {
 
   val url = "http://lift.jcraft.com/dstream/update/"
 

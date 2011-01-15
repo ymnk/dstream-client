@@ -50,7 +50,7 @@ object Desktop{
                   new Desktop(512, 256),
                   new Desktop(256, 256))
 
-  def default = list.first
+  def default = list.head
 }
 
 class Desktop(val width:Int, val height:Int){
