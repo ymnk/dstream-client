@@ -28,10 +28,10 @@ modification, are permitted provided that the following conditions are met:
 package com.jcraft.dstream_client
 
 import _root_.java.awt.Rectangle
-import _root_.scala.collection.mutable.Set
+import _root_.scala.collection.mutable
 
 class DamagedArea{
-  private var pool = Set.empty[Rectangle]
+  private val pool = mutable.Set.empty[Rectangle]
   def add(x:Int, y:Int, w:Int, h:Int):Unit = synchronized{
     var r=new Rectangle(x, y, w, h)
     val rr=for(p<-pool if p.intersects(r)) yield p

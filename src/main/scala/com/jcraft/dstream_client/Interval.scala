@@ -28,7 +28,6 @@ modification, are permitted provided that the following conditions are met:
 package com.jcraft.dstream_client
 
 import _root_.javax.imageio._
-import _root_.scala.collection.mutable.{Map,Set}
 import _root_.java.awt.image.BufferedImage
 import _root_.java.io.ByteArrayOutputStream
 

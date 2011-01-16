@@ -28,17 +28,17 @@ modification, are permitted provided that the following conditions are met:
 package com.jcraft.dstream_client
 
 import _root_.javax.imageio._
-import _root_.scala.collection.mutable.{Map,Set}
+import _root_.scala.collection.mutable
 import _root_.java.awt.image.BufferedImage
 import _root_.java.io.ByteArrayOutputStream
 
 object ImageFormat{
   val list = List(new ImageFormat("jpg"), new ImageFormat("png"))
 
-  val iWriter = list.map(_.format).foldLeft(Map.empty[String, ImageWriter]){
+  val iWriter = list.map(_.format).foldLeft(mutable.Map.empty[String, ImageWriter]){
      case (m, fmt) => 
        val writer = ImageIO.getImageWritersByFormatName(fmt).next
-       m + (fmt -> writer.asInstanceOf[ImageWriter])
+       m += (fmt -> writer.asInstanceOf[ImageWriter])
   }
 
   def default = list.head

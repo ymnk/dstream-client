@@ -31,7 +31,6 @@ import _root_.java.io.ByteArrayOutputStream
 import _root_.java.awt.{Image, Rectangle}
 import _root_.java.awt.image.BufferedImage
 import _root_.javax.imageio._
-import _root_.scala.collection.mutable.{Map,Set}
 import _root_.scala.xml._
 
 trait ImageProducer{ self:Uploader =>
