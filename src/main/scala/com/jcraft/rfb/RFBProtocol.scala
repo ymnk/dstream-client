@@ -91,6 +91,7 @@ class RFBProtocol{
     securityCheck
 
     clientInit
+
     val serverPixelFormat = serverInit
 
     setPixelFormat(pixelFormat)
@@ -185,6 +186,8 @@ class RFBProtocol{
     val protocolVersion = readBytes(12)
     val remoteVersion = new String(protocolVersion) match{
       case versionString(n) => 30+n.toInt
+      // Apple Remote Desktop returns such an invalid version string ;-(
+      case "RFB 003.889\n" => 38  
       case _ => 0
     }
     out.write(protocolVersion); out.flush
@@ -204,13 +207,13 @@ class RFBProtocol{
             in.readFully(reason_string)
             println(new String(reason_string))
             0
-           case n => n
+          case n =>
+            n
         }
 
       }
       else{
         val number_of_security_types = readByte
-    
         if(number_of_security_types==0){  
           val reason_length=in.readInt
           val reason_string=new Array[Byte](reason_length)
@@ -377,13 +380,16 @@ object RFBProtocol{
     def apply(rfb:RFBProtocol):Int
     def securityResult(rfb:RFBProtocol):Int = 
       rfb.in.readInt match {
-        case 0 if(rfb.remoteVersion>=38) =>
-          val reason_length=rfb.in.readInt
-          val reason_string=new Array[Byte](reason_length)
-          rfb.in.readFully(reason_string)
-          println(new String(reason_string))
+        case 0 =>
           0 
-        case n => n
+        case n =>
+          if(rfb.remoteVersion>=38){
+            val reason_length=rfb.in.readInt
+            val reason_string=new Array[Byte](reason_length)
+            rfb.in.readFully(reason_string)
+            println(new String(reason_string))
+          }
+          n
       }
   }
 
